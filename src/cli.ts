@@ -2,9 +2,10 @@
 import { readFile, stat } from 'node:fs/promises';
 import { parse } from '@iarna/toml';
 import { compareConfigs } from './core.js';
+import { readConfigAtRef } from './git-refs.js';
 
 function usage(): never {
-  console.error('Usage: changeguard --before FILE --after FILE [--json]');
+  console.error('Usage: changeguard --before FILE --after FILE [--json]\n       changeguard --base-ref REF --head-ref REF --file PATH [--json]');
   process.exit(2);
 }
 
@@ -27,15 +28,38 @@ async function main(): Promise<void> {
   let before: string | undefined;
   let after: string | undefined;
   let json = false;
+  let baseRef: string | undefined;
+  let headRef: string | undefined;
+  let file: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--json') json = true;
     else if (arg === '--before' && args[i + 1]) before = args[++i];
     else if (arg === '--after' && args[i + 1]) after = args[++i];
+    else if (arg === '--base-ref' && args[i + 1]) baseRef = args[++i];
+    else if (arg === '--head-ref' && args[i + 1]) headRef = args[++i];
+    else if (arg === '--file' && args[i + 1]) file = args[++i];
     else usage();
   }
-  if (!before || !after) usage();
-  const [oldConfig, newConfig] = await Promise.all([readConfig(before), readConfig(after)]);
+  const fileMode = before !== undefined || after !== undefined;
+  const gitMode = baseRef !== undefined || headRef !== undefined || file !== undefined;
+
+  if (fileMode === gitMode) usage();
+
+  let oldConfig: Record<string, unknown>;
+  let newConfig: Record<string, unknown>;
+
+  if (gitMode) {
+    if (!baseRef || !headRef || !file) usage();
+    oldConfig = readConfigAtRef(baseRef, file);
+    newConfig = readConfigAtRef(headRef, file);
+  } else {
+    if (!before || !after) usage();
+    [oldConfig, newConfig] = await Promise.all([
+      readConfig(before),
+      readConfig(after),
+    ]);
+  }
   const findings = compareConfigs(oldConfig, newConfig);
   const note = 'Experimental: only access_scopes, application_url, auth.redirect_urls and app-specific webhooks are examined; other fields are NOT checked.';
   if (json) console.log(JSON.stringify({ schemaVersion: 1, note, findings }, null, 2));

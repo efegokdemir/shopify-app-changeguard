@@ -34,10 +34,18 @@ Use anonymized configuration examples. Never commit real secrets, credentials or
 application configurations. CLI is read-only and offline. TOML parse errors are redacted
 because parser diagnostics might otherwise contain original source lines.
 
+## Compare Git revisions
+
+Compare two committed versions of the same TOML file:
+
+    npm run check -- --base-ref main --head-ref HEAD --file shopify.app.toml --json
+
+Run inside a Git repository. Both revisions must be commits, and the file must exist in both. Uncommitted changes are ignored. This operation is read-only and does not contact Shopify.
+
 ## Next milestones
 
 Explainable client ID diffs; additional webhook regression
-fixtures; git revision support; read-only GitHub PR checks; external developer validation.
+fixtures; read-only GitHub PR checks; external developer validation.
 
 ## Contributing
 
