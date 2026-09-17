@@ -5,7 +5,7 @@ Not affiliated with, endorsed by, or certified by Shopify.
 
 ## Status
 
-**v0.1 local proof of concept.** It reviews required/optional access scopes,
+**Experimental prototype with a tested GitHub Action.** It reviews required/optional access scopes,
 application_url, [auth].redirect_urls, webhook API version and app-specific
 webhook subscription changes across two local TOML files. URLs, delivery
 destinations, topics and filter expressions are not printed in findings.
@@ -25,8 +25,8 @@ npm run check -- --before examples/before.toml --after examples/after.toml --jso
 ```
 
 Exit codes: 0 = analysis completed (including review findings), 2 = invalid input/tool error.
-A fail-on policy and GitHub Action may be added after the scope diff is validated.
-The GitHub repository is intended to be public. No npm release has been published; the package remains private to prevent accidental publication.
+Review findings are informational; unreviewable changes fail the check.
+The GitHub repository is public. No npm release has been published; the package remains private to prevent accidental publication.
 
 ## Security
 
@@ -45,7 +45,7 @@ Run inside a Git repository. Both revisions must be commits, and the file must e
 ## Next milestones
 
 Explainable client ID diffs; additional webhook regression
-fixtures; read-only GitHub PR checks; external developer validation.
+fixtures; expanded PR review coverage; external developer validation.
 
 ## Contributing
 
@@ -69,6 +69,8 @@ The workflow does not post PR comments, access Shopify or approve deployment.
 It is not an independent security boundary against malicious PR code.
 
 ## Reusable GitHub Action
+
+See the [installation guide](docs/github-action.md) for a complete workflow example.
 
 Other repositories can use this action in a pull request workflow.
 Check out the repository with `fetch-depth: 0` and
