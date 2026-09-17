@@ -54,3 +54,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## GitHub PR checks
+
+The repository includes an experimental, read-only pull request workflow.
+It compares supported Shopify app TOML files between the PR base and head
+commits and prints a JSON report in the workflow logs.
+
+Added, deleted or unparseable configuration files cause the review check
+to fail instead of silently reporting success. Ordinary review findings
+do not currently fail the check.
+
+The workflow does not post PR comments, access Shopify or approve deployment.
+It is not an independent security boundary against malicious PR code.
