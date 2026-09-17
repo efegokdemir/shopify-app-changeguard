@@ -37,6 +37,22 @@ export function renderSummary(report) {
     `- Unreviewable configurations: ${unreviewed.length}`,
   ];
 
+  lines.push('', '### Review status', '');
+
+  if (unreviewed.length > 0) {
+    lines.push(
+      '**Review incomplete:** Some configurations could not be analysed. The check fails.',
+    );
+  } else if (total > 0) {
+    lines.push(
+      '**Manual review recommended:** Supported-field changes were found. Findings are informational and do not fail the check.',
+    );
+  } else {
+    lines.push(
+      '**No supported-field changes detected.** This is not a deployment or security approval.',
+    );
+  }
+
   if (counts.size) {
     lines.push('', '### Findings by rule', '');
     lines.push('| Rule | Count |', '| --- | ---: |');

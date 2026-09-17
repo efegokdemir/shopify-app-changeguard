@@ -77,3 +77,52 @@ test('rejects malformed reports', () => {
     /Invalid findings/,
   );
 });
+
+
+test('shows explicit review status for informational findings', () => {
+  const text = renderSummary({
+    files: [{
+      findings: [{ ruleId: 'CLIENT_ID_CHANGED' }],
+    }],
+    unreviewed: [],
+  });
+
+  assert.match(text, /Manual review recommended:/);
+  assert.match(text, /informational and do not fail the check/);
+  assert.doesNotMatch(text, /Review incomplete:/);
+});
+
+test('shows an incomplete review when configurations cannot be analysed', () => {
+  const text = renderSummary({
+    files: [],
+    unreviewed: [{ reason: 'Unsupported configuration' }],
+  });
+
+  assert.match(text, /Review incomplete:/);
+  assert.match(text, /The check fails/);
+  assert.doesNotMatch(text, /Manual review recommended:/);
+});
+
+test('prioritises incomplete review when findings also exist', () => {
+  const text = renderSummary({
+    files: [{
+      findings: [{ ruleId: 'SCOPE_REQUIRED_ADDED' }],
+    }],
+    unreviewed: [{ reason: 'Unsupported configuration' }],
+  });
+
+  assert.match(text, /Review incomplete:/);
+  assert.match(text, /Review findings: 1/);
+  assert.doesNotMatch(text, /Manual review recommended:/);
+});
+
+test('never treats an empty review as deployment approval', () => {
+  const text = renderSummary({
+    files: [],
+    unreviewed: [],
+  });
+
+  assert.match(text, /No supported-field changes detected/);
+  assert.match(text, /not a deployment or security approval/);
+  assert.doesNotMatch(text, /Manual review recommended:/);
+});
