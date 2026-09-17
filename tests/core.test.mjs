@@ -30,3 +30,43 @@ test('does not expose unrelated app configuration fields in findings', () => {
   const newConfig = { ...cfg('read_orders'), client_secret: 'another-secret' };
   assert.deepEqual(compareConfigs(oldConfig, newConfig), []);
 });
+
+test('reports optional to required as one transition', () => {
+  const results = compareConfigs(
+    cfg('read_orders', ['read_products']),
+    cfg('read_orders,read_products'),
+  );
+
+  assert.deepEqual(
+    results.map((finding) => finding.ruleId),
+    ['SCOPE_OPTIONAL_TO_REQUIRED'],
+  );
+});
+
+test('reports required to optional as one transition', () => {
+  const results = compareConfigs(
+    cfg('read_orders,read_products'),
+    cfg('read_orders', ['read_products']),
+  );
+
+  assert.deepEqual(
+    results.map((finding) => finding.ruleId),
+    ['SCOPE_REQUIRED_TO_OPTIONAL'],
+  );
+});
+
+test('keeps genuine additions and removals separate', () => {
+  const results = compareConfigs(
+    cfg('read_orders,read_products', ['read_customers']),
+    cfg('read_orders,read_customers,write_products'),
+  );
+
+  assert.deepEqual(
+    results.map((finding) => finding.ruleId).sort(),
+    [
+      'SCOPE_OPTIONAL_TO_REQUIRED',
+      'SCOPE_REQUIRED_ADDED',
+      'SCOPE_REQUIRED_REMOVED',
+    ].sort(),
+  );
+});

@@ -39,8 +39,30 @@ export function compareConfigs(before: Config, after: Config): Finding[] {
   const oldScopes = readScopes(before);
   const newScopes = readScopes(after);
   const changes: Finding[] = [];
+
+  for (const scope of [...oldScopes.optional].filter((s) => newScopes.required.has(s)).sort()) {
+    changes.push({
+      ruleId: 'SCOPE_OPTIONAL_TO_REQUIRED',
+      severity: 'review',
+      field: 'access_scopes',
+      summary: `scope changed from optional to required: ${scope}`,
+    });
+  }
+
+  for (const scope of [...oldScopes.required].filter((s) => newScopes.optional.has(s)).sort()) {
+    changes.push({
+      ruleId: 'SCOPE_REQUIRED_TO_OPTIONAL',
+      severity: 'review',
+      field: 'access_scopes',
+      summary: `scope changed from required to optional: ${scope}`,
+    });
+  }
+
   const compare = (oldValues: Set<string>, newValues: Set<string>, kind: 'required' | 'optional') => {
-    for (const scope of [...newValues].filter((value) => !oldValues.has(value)).sort()) {
+    const oldOther = kind === 'required' ? oldScopes.optional : oldScopes.required;
+    const newOther = kind === 'required' ? newScopes.optional : newScopes.required;
+
+    for (const scope of [...newValues].filter((value) => !oldValues.has(value) && !oldOther.has(value)).sort()) {
       changes.push({
         ruleId: `SCOPE_${kind.toUpperCase()}_ADDED`,
         severity: 'review',
@@ -48,7 +70,7 @@ export function compareConfigs(before: Config, after: Config): Finding[] {
         summary: `${kind} scope added: ${scope}`,
       });
     }
-    for (const scope of [...oldValues].filter((value) => !newValues.has(value)).sort()) {
+    for (const scope of [...oldValues].filter((value) => !newValues.has(value) && !newOther.has(value)).sort()) {
       changes.push({
         ruleId: `SCOPE_${kind.toUpperCase()}_REMOVED`,
         severity: 'review',
