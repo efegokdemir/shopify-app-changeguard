@@ -93,3 +93,27 @@ test('rejects invalid commit identifiers', () => {
     assert.equal(run('invalid-sha', head).status, 2);
   });
 });
+
+test('excludes unrelated changes added to the base branch', () => {
+  fixture(({ dir, git, commit, run, base, head }) => {
+    git('switch', '-q', '-c', 'updated-base', base);
+
+    writeFileSync(
+      join(dir, 'shopify.app.toml'),
+      '[access_scopes]\nscopes = "read_orders,write_orders"\n',
+    );
+
+    const updatedBase = commit('Unrelated base branch update');
+    const result = run(updatedBase, head);
+
+    assert.equal(result.status, 0, result.stderr);
+
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.files.length, 1);
+    assert.deepEqual(
+      report.files[0].findings.map((finding) => finding.ruleId),
+      ['SCOPE_REQUIRED_ADDED'],
+    );
+    assert.ok(report.files[0].findings[0].summary.includes('read_products'));
+  });
+});
