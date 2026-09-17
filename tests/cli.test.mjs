@@ -181,3 +181,102 @@ test('CLI rejects malformed client IDs without exposing their values', () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test('CLI redacts webhook delivery details in JSON and text output', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'changeguard-webhook-private-'));
+  const oldUri = 'SYNTHETIC_WEBHOOK_URI_OLD_4A7';
+  const newUri = 'SYNTHETIC_WEBHOOK_URI_NEW_9C2';
+  const oldFilter = 'SYNTHETIC_WEBHOOK_FILTER_OLD_5B3';
+  const newFilter = 'SYNTHETIC_WEBHOOK_FILTER_NEW_7D1';
+  const topic = 'synthetic/private-topic';
+
+  try {
+    const oldFile = join(directory, 'before.toml');
+    const newFile = join(directory, 'after.toml');
+
+    const config = (uri, filter) => [
+      '[access_scopes]',
+      'scopes = "read_orders"',
+      '',
+      '[webhooks]',
+      'api_version = "2026-07"',
+      '',
+      '[[webhooks.subscriptions]]',
+      `topics = ["${topic}"]`,
+      `uri = "https://example.test/${uri}"`,
+      `filter = "${filter}"`,
+      '',
+    ].join('\n');
+
+    writeFileSync(oldFile, config(oldUri, oldFilter));
+    writeFileSync(newFile, config(newUri, newFilter));
+
+    const reports = [
+      run(['--before', oldFile, '--after', newFile, '--json']),
+      run(['--before', oldFile, '--after', newFile]),
+    ];
+
+    for (const result of reports) {
+      assert.equal(result.status, 0, result.stderr);
+
+      const output = result.stdout + result.stderr;
+
+      for (const privateValue of [
+        oldUri,
+        newUri,
+        oldFilter,
+        newFilter,
+        topic,
+      ]) {
+        assert.equal(output.includes(privateValue), false);
+      }
+    }
+
+    const json = JSON.parse(reports[0].stdout);
+    assert.deepEqual(
+      json.findings.map(({ ruleId }) => ruleId),
+      ['WEBHOOK_SUBSCRIPTIONS_CHANGED'],
+    );
+    assert.match(reports[1].stdout, /WEBHOOK_SUBSCRIPTIONS_CHANGED/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('CLI rejects malformed webhook destinations without exposing values', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'changeguard-webhook-invalid-'));
+  const secret = 'SYNTHETIC_INVALID_URI_8F2';
+
+  try {
+    const validFile = join(directory, 'valid.toml');
+    const invalidFile = join(directory, 'invalid.toml');
+
+    const prefix = [
+      '[access_scopes]',
+      'scopes = "read_orders"',
+      '',
+      '[[webhooks.subscriptions]]',
+      'topics = ["orders/create"]',
+    ].join('\n');
+
+    writeFileSync(validFile, `${prefix}\nuri = "/valid"\n`);
+    writeFileSync(invalidFile, `${prefix}\nuri = ["${secret}"]\n`);
+
+    for (const args of [
+      ['--before', validFile, '--after', invalidFile, '--json'],
+      ['--before', invalidFile, '--after', validFile],
+    ]) {
+      const result = run(args);
+
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /Webhook subscription uri/);
+      assert.equal(
+        (result.stdout + result.stderr).includes(secret),
+        false,
+      );
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
