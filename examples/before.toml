@@ -1,0 +1,7 @@
+name = "Demo App"
+client_id = "EXAMPLE_ID_NOT_A_REAL_CREDENTIAL"
+application_url = "https://example.com"
+
+[access_scopes]
+scopes = "read_orders"
+optional_scopes = ["read_products"]
