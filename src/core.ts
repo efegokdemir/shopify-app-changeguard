@@ -1,4 +1,5 @@
 import { compareUrls } from './urls.js';
+import { compareWebhooks } from './webhooks.js';
 
 export type Severity = 'review';
 export type Finding = {
@@ -84,6 +85,7 @@ export function compareConfigs(before: Config, after: Config): Finding[] {
   compare(oldScopes.required, newScopes.required, 'required');
   compare(oldScopes.optional, newScopes.optional, 'optional');
   changes.push(...compareUrls(before, after));
+  changes.push(...compareWebhooks(before, after));
   return changes.sort((a, b) =>
     a.field.localeCompare(b.field) || a.ruleId.localeCompare(b.ruleId) || a.summary.localeCompare(b.summary),
   );

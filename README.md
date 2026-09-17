@@ -5,11 +5,13 @@ Not affiliated with, endorsed by, or certified by Shopify.
 
 ## Status
 
-**v0.1 local proof of concept.** It compares required/optional access scopes,
-application_url and [auth].redirect_urls across two local TOML files. URL values
-are redacted in findings. Webhook subscriptions, application IDs, unknown fields
-and actual deployed state are **not checked**. An empty report is not a security
-or deployment approval. Does not access Shopify or deploy anything.
+**v0.1 local proof of concept.** It reviews required/optional access scopes,
+application_url, [auth].redirect_urls, webhook API version and app-specific
+webhook subscription changes across two local TOML files. URLs, delivery
+destinations, topics and filter expressions are not printed in findings.
+Application IDs, unrelated sections and deployed state are **not checked**.
+An empty report is not a security or deployment approval. Does not access Shopify
+or deploy anything.
 
 ## Develop
 
@@ -34,5 +36,5 @@ because parser diagnostics might otherwise contain original source lines.
 
 ## Next milestones
 
-Explainable client ID/webhook diffs; regression
+Explainable client ID diffs; additional webhook regression
 fixtures; git revision support; read-only GitHub PR checks; external developer validation.
