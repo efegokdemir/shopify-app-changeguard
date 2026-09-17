@@ -1,6 +1,6 @@
 {
   "name": "shopify-app-changeguard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Experimental, offline semantic change review for Shopify app configuration files (unofficial)",
   "type": "module",
