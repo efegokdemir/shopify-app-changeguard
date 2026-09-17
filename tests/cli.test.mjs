@@ -97,3 +97,87 @@ test('CLI does not reveal changed application URL values', () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test('CLI redacts client IDs in JSON and text output', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'changeguard-client-id-'));
+  const oldId = 'SYNTHETIC_CLIENT_ID_OLD_4C9';
+  const newId = 'SYNTHETIC_CLIENT_ID_NEW_8D2';
+
+  try {
+    const oldFile = join(directory, 'before.toml');
+    const newFile = join(directory, 'after.toml');
+
+    const config = (id) =>
+      `client_id = "${id}"\n\n[access_scopes]\nscopes = "read_orders"\n`;
+
+    writeFileSync(oldFile, config(oldId));
+    writeFileSync(newFile, config(newId));
+
+    const json = run([
+      '--before', oldFile,
+      '--after', newFile,
+      '--json',
+    ]);
+
+    assert.equal(json.status, 0, json.stderr);
+
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(
+      report.findings.map(({ ruleId }) => ruleId),
+      ['CLIENT_ID_CHANGED'],
+    );
+
+    const plain = run([
+      '--before', oldFile,
+      '--after', newFile,
+    ]);
+
+    assert.equal(plain.status, 0, plain.stderr);
+    assert.match(plain.stdout, /CLIENT_ID_CHANGED/);
+
+    for (const output of [
+      json.stdout,
+      json.stderr,
+      plain.stdout,
+      plain.stderr,
+    ]) {
+      assert.equal(output.includes(oldId), false);
+      assert.equal(output.includes(newId), false);
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('CLI rejects malformed client IDs without exposing their values', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'changeguard-bad-id-'));
+  const secret = 'SYNTHETIC_INVALID_CLIENT_ID_6B1';
+
+  try {
+    const oldFile = join(directory, 'before.toml');
+    const badFile = join(directory, 'after.toml');
+
+    writeFileSync(
+      oldFile,
+      'client_id = "SYNTHETIC_VALID_ID"\n\n[access_scopes]\nscopes = "read_orders"\n',
+    );
+
+    writeFileSync(
+      badFile,
+      `client_id = ["${secret}"]\n\n[access_scopes]\nscopes = "read_orders"\n`,
+    );
+
+    const result = run([
+      '--before', oldFile,
+      '--after', badFile,
+      '--json',
+    ]);
+
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /client_id must be a non-empty string/);
+    assert.equal((result.stdout + result.stderr).includes(secret), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

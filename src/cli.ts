@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     ]);
   }
   const findings = compareConfigs(oldConfig, newConfig);
-  const note = 'Experimental: only access_scopes, application_url, auth.redirect_urls and app-specific webhooks are examined; other fields are NOT checked.';
+  const note = 'Experimental: only access_scopes, client_id, application_url, auth.redirect_urls and app-specific webhooks are examined; other fields are NOT checked.';
   if (json) console.log(JSON.stringify({ schemaVersion: 1, note, findings }, null, 2));
   else {
     console.log('ChangeGuard v0.1 (local prototype)');
