@@ -87,7 +87,7 @@ and provide these inputs:
 - `head_sha`: `${{ github.event.pull_request.head.sha }}`
 
 Replace the placeholder with a real, reviewed commit SHA.
-No stable version tag has been published yet.
+The v0.1.0 GitHub release is an experimental prerelease. Pin a reviewed full commit SHA for reproducibility.
 
 The action installs its own dependencies and reviews committed Shopify
 app TOML changes offline. Findings are informational, while missing or
