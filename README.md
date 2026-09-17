@@ -5,10 +5,11 @@ Not affiliated with, endorsed by, or certified by Shopify.
 
 ## Status
 
-**v0.1 local proof of concept.** It only compares required and optional access scopes.
-All other config fields (including URLs, webhook subscriptions, application IDs,
-unknown fields and actual deployed state) are **not checked**. Do not treat an empty
-report as a security or deployment approval. Does not access Shopify or deploy anything.
+**v0.1 local proof of concept.** It compares required/optional access scopes,
+application_url and [auth].redirect_urls across two local TOML files. URL values
+are redacted in findings. Webhook subscriptions, application IDs, unknown fields
+and actual deployed state are **not checked**. An empty report is not a security
+or deployment approval. Does not access Shopify or deploy anything.
 
 ## Develop
 
@@ -33,5 +34,5 @@ because parser diagnostics might otherwise contain original source lines.
 
 ## Next milestones
 
-Scope transition classification; explainable URL/client ID/webhook diffs; regression
+Explainable client ID/webhook diffs; regression
 fixtures; git revision support; read-only GitHub PR checks; external developer validation.

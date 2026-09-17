@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   if (!before || !after) usage();
   const [oldConfig, newConfig] = await Promise.all([readConfig(before), readConfig(after)]);
   const findings = compareConfigs(oldConfig, newConfig);
-  const note = 'Experimental: only access_scopes is examined; other configuration fields are NOT checked.';
+  const note = 'Experimental: only access_scopes, application_url and auth.redirect_urls are examined; other fields are NOT checked.';
   if (json) console.log(JSON.stringify({ schemaVersion: 1, note, findings }, null, 2));
   else {
     console.log('ChangeGuard v0.1 (local prototype)');
