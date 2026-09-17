@@ -67,3 +67,23 @@ do not currently fail the check.
 
 The workflow does not post PR comments, access Shopify or approve deployment.
 It is not an independent security boundary against malicious PR code.
+
+## Reusable GitHub Action
+
+Other repositories can use this action in a pull request workflow.
+Check out the repository with `fetch-depth: 0` and
+`persist-credentials: false` first.
+
+Use `efegokdemir/shopify-app-changeguard@FULL_REVIEWED_COMMIT_SHA`
+and provide these inputs:
+
+- `base_sha`: `${{ github.event.pull_request.base.sha }}`
+- `head_sha`: `${{ github.event.pull_request.head.sha }}`
+
+Replace the placeholder with a real, reviewed commit SHA.
+No stable version tag has been published yet.
+
+The action installs its own dependencies and reviews committed Shopify
+app TOML changes offline. Findings are informational, while missing or
+unreviewable configurations fail the check. It does not access Shopify
+or approve deployment.

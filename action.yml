@@ -1,0 +1,44 @@
+name: ChangeGuard
+description: Read-only review of Shopify app TOML changes in a pull request
+
+inputs:
+  base_sha:
+    description: Pull request base commit SHA
+    required: true
+  head_sha:
+    description: Pull request head commit SHA
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install ChangeGuard dependencies
+      shell: bash
+      env:
+        CG_ACTION_DIR: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        npm --prefix "$CG_ACTION_DIR" ci --ignore-scripts --no-audit --no-fund
+
+    - name: Build ChangeGuard
+      shell: bash
+      env:
+        CG_ACTION_DIR: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        npm --prefix "$CG_ACTION_DIR" run build
+
+    - name: Review Shopify configuration changes
+      shell: bash
+      env:
+        CG_ACTION_DIR: ${{ github.action_path }}
+        CHANGEGUARD_BASE_SHA: ${{ inputs.base_sha }}
+        CHANGEGUARD_HEAD_SHA: ${{ inputs.head_sha }}
+      run: |
+        set -euo pipefail
+        node "$CG_ACTION_DIR/scripts/check-pr.mjs"
