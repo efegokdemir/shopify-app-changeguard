@@ -1,4 +1,6 @@
 import { spawnSync } from 'node:child_process';
+import { appendFileSync } from 'node:fs';
+import { renderSummary } from './summary.mjs';
 import { compareConfigs } from '../dist/core.js';
 import { readConfigAtRef } from '../dist/git-refs.js';
 
@@ -89,12 +91,26 @@ for (const { status, path } of changed) {
   }
 }
 
-console.log(JSON.stringify({
+const report = {
   schemaVersion: 1,
   note: 'Experimental review only; not deployment approval.',
   files,
   unreviewed,
-}, null, 2));
+};
+
+console.log(JSON.stringify(report, null, 2));
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+  try {
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      renderSummary(report),
+      'utf8',
+    );
+  } catch {
+    stop('Unable to write GitHub Actions summary.');
+  }
+}
 
 if (unreviewed.length > 0) {
   process.exitCode = 2;

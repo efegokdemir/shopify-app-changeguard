@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,13 +20,15 @@ function fixture(check) {
     git('commit', '-q', '-m', message);
     return git('rev-parse', 'HEAD');
   };
-  const run = (base, head) => spawnSync(process.execPath, [runner], {
+  const run = (base, head, extraEnv = {}) => spawnSync(process.execPath, [runner], {
     cwd: dir,
     encoding: 'utf8',
     env: {
       ...process.env,
+      GITHUB_STEP_SUMMARY: '',
       CHANGEGUARD_BASE_SHA: base,
       CHANGEGUARD_HEAD_SHA: head,
+      ...extraEnv,
     },
   });
 
@@ -115,5 +117,82 @@ test('excludes unrelated changes added to the base branch', () => {
       ['SCOPE_REQUIRED_ADDED'],
     );
     assert.ok(report.files[0].findings[0].summary.includes('read_products'));
+  });
+});
+
+test('writes a summary for a scope change', () => {
+  fixture(({ dir, run, base, head }) => {
+    const summaryPath = join(dir, 'summary.md');
+    const result = run(base, head, {
+      GITHUB_STEP_SUMMARY: summaryPath,
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).files.length, 1);
+
+    const summary = readFileSync(summaryPath, 'utf8');
+    assert.match(summary, /Configuration files reviewed: 1/);
+    assert.match(summary, /Review findings: 1/);
+    assert.match(summary, /\| SCOPE_REQUIRED_ADDED \| 1 \|/);
+    assert.doesNotMatch(summary, /shopify\.app\.toml/);
+  });
+});
+
+test('writes a summary when no Shopify configuration changed', () => {
+  fixture(({ dir, commit, run, head }) => {
+    const summaryPath = join(dir, 'summary.md');
+    writeFileSync(join(dir, 'notes.txt'), 'Documentation only\n');
+    const next = commit('Update documentation');
+
+    const result = run(head, next, {
+      GITHUB_STEP_SUMMARY: summaryPath,
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).files, []);
+
+    const summary = readFileSync(summaryPath, 'utf8');
+    assert.match(summary, /Review findings: 0/);
+    assert.match(summary, /Unreviewable configurations: 0/);
+  });
+});
+
+test('writes a redacted summary and fails for malformed TOML', () => {
+  fixture(({ dir, commit, run, head }) => {
+    const marker = 'PRIVATE_MARKER_STEP_SUMMARY';
+    const summaryPath = join(dir, 'summary.md');
+
+    writeFileSync(
+      join(dir, 'shopify.app.toml'),
+      `broken = "${marker}\n`,
+    );
+
+    const next = commit('Introduce malformed configuration');
+    const result = run(head, next, {
+      GITHUB_STEP_SUMMARY: summaryPath,
+    });
+
+    assert.equal(result.status, 2);
+    assert.equal(JSON.parse(result.stdout).unreviewed.length, 1);
+
+    const summary = readFileSync(summaryPath, 'utf8');
+    assert.match(summary, /Unreviewable configurations: 1/);
+
+    assert.ok(
+      !(result.stdout + result.stderr + summary).includes(marker),
+    );
+  });
+});
+
+test('fails safely when the summary cannot be written', () => {
+  fixture(({ dir, run, base, head }) => {
+    const result = run(base, head, {
+      GITHUB_STEP_SUMMARY: dir,
+    });
+
+    assert.equal(result.status, 2);
+    assert.equal(JSON.parse(result.stdout).files.length, 1);
+    assert.match(result.stderr, /Unable to write GitHub Actions summary/);
+    assert.ok(!result.stderr.includes(dir));
   });
 });

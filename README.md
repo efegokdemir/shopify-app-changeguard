@@ -65,6 +65,10 @@ Added, deleted or unparseable configuration files cause the review check
 to fail instead of silently reporting success. Ordinary review findings
 do not currently fail the check.
 
+The workflow also writes a GitHub Actions job summary with review counts
+and findings grouped by rule ID. The JSON report remains in the workflow
+logs. File paths and finding descriptions are not copied into the summary.
+
 The workflow does not post PR comments, access Shopify or approve deployment.
 It is not an independent security boundary against malicious PR code.
 
