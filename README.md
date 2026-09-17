@@ -26,7 +26,7 @@ npm run check -- --before examples/before.toml --after examples/after.toml --jso
 
 Exit codes: 0 = analysis completed (including review findings), 2 = invalid input/tool error.
 A fail-on policy and GitHub Action may be added after the scope diff is validated.
-This is private/unpublished until initial checks are reviewed; there is no npm release.
+The GitHub repository is intended to be public. No npm release has been published; the package remains private to prevent accidental publication.
 
 ## Security
 
@@ -38,3 +38,11 @@ because parser diagnostics might otherwise contain original source lines.
 
 Explainable client ID diffs; additional webhook regression
 fixtures; git revision support; read-only GitHub PR checks; external developer validation.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
