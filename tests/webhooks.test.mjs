@@ -95,3 +95,142 @@ test('reports scopes, URLs and webhooks together without secret leakage', () => 
   ].sort());
   assert.doesNotMatch(JSON.stringify(findings), /SECRET|old\.test|new\.test|\/old|\/new/);
 });
+
+
+test('ignores reordered multiple destinations for the same topic', () => {
+  const first = subscription(['orders/create'], '/first');
+  const second = subscription(['orders/create'], '/second');
+
+  const before = cfg({ subscriptions: [first, second] });
+  const after = cfg({ subscriptions: [second, first, first] });
+
+  assert.deepEqual(compareConfigs(before, after), []);
+});
+
+test('reports removal of one destination as a modified route', () => {
+  const secret = 'SYNTHETIC_WEBHOOK_DESTINATION_4E9';
+
+  const before = cfg({ subscriptions: [
+    subscription(['orders/create'], '/retained'),
+    subscription(['orders/create'], `https://example.test/${secret}`),
+  ] });
+
+  const after = cfg({ subscriptions: [
+    subscription(['orders/create'], '/retained'),
+  ] });
+
+  const findings = compareConfigs(before, after);
+
+  assert.deepEqual(
+    findings.map(({ ruleId }) => ruleId),
+    ['WEBHOOK_SUBSCRIPTIONS_CHANGED'],
+  );
+  assert.match(findings[0].summary, /added: 0; removed: 0; modified: 1/);
+  assert.equal(JSON.stringify(findings).includes(secret), false);
+});
+
+test('ignores regrouping when each topic retains its delivery destinations', () => {
+  const before = cfg({ subscriptions: [
+    subscription(['orders/create', 'products/update'], '/shared'),
+    subscription(['orders/create'], '/additional'),
+  ] });
+
+  const after = cfg({ subscriptions: [
+    subscription(['orders/create'], '/additional'),
+    subscription(['products/update'], '/shared'),
+    subscription(['orders/create'], '/shared'),
+  ] });
+
+  assert.deepEqual(compareConfigs(before, after), []);
+});
+
+test('reports include_fields changes without exposing field names', () => {
+  const oldField = 'SYNTHETIC_PRIVATE_FIELD_OLD_5A1';
+  const newField = 'SYNTHETIC_PRIVATE_FIELD_NEW_2D8';
+
+  const before = cfg({ subscriptions: [
+    subscription(['orders/create'], '/same', {
+      include_fields: ['id', oldField],
+    }),
+  ] });
+
+  const after = cfg({ subscriptions: [
+    subscription(['orders/create'], '/same', {
+      include_fields: ['id', newField],
+    }),
+  ] });
+
+  const findings = compareConfigs(before, after);
+  const output = JSON.stringify(findings);
+
+  assert.deepEqual(
+    findings.map(({ ruleId }) => ruleId),
+    ['WEBHOOK_SUBSCRIPTIONS_CHANGED'],
+  );
+  assert.match(findings[0].summary, /added: 0; removed: 0; modified: 1/);
+  assert.equal(output.includes(oldField), false);
+  assert.equal(output.includes(newField), false);
+});
+
+test('reports delivery filter changes without exposing filter values', () => {
+  const oldFilter = 'SYNTHETIC_PRIVATE_FILTER_OLD_7C2';
+  const newFilter = 'SYNTHETIC_PRIVATE_FILTER_NEW_9B4';
+
+  const before = cfg({ subscriptions: [
+    subscription(['orders/create'], '/same', { filter: oldFilter }),
+  ] });
+
+  const after = cfg({ subscriptions: [
+    subscription(['orders/create'], '/same', { filter: newFilter }),
+  ] });
+
+  const findings = compareConfigs(before, after);
+  const output = JSON.stringify(findings);
+
+  assert.match(findings[0].summary, /added: 0; removed: 0; modified: 1/);
+  assert.equal(output.includes(oldFilter), false);
+  assert.equal(output.includes(newFilter), false);
+});
+
+test('reports webhook API version addition and removal without values', () => {
+  const version = 'SYNTHETIC_API_VERSION_3F8';
+
+  for (const [before, after] of [
+    [cfg(), cfg({ api_version: version })],
+    [cfg({ api_version: version }), cfg()],
+  ]) {
+    const findings = compareConfigs(before, after);
+
+    assert.deepEqual(
+      findings.map(({ ruleId }) => ruleId),
+      ['WEBHOOK_API_VERSION_CHANGED'],
+    );
+    assert.equal(JSON.stringify(findings).includes(version), false);
+  }
+});
+
+test('rejects malformed webhook data on either side without echoing values', () => {
+  const secret = 'SYNTHETIC_INVALID_WEBHOOK_6E3';
+
+  const valid = cfg({ subscriptions: [
+    subscription(['orders/create'], '/valid'),
+  ] });
+
+  const invalid = cfg({ subscriptions: [
+    subscription(['orders/create'], [secret]),
+  ] });
+
+  for (const [before, after] of [
+    [invalid, valid],
+    [valid, invalid],
+  ]) {
+    assert.throws(
+      () => compareConfigs(before, after),
+      (error) => {
+        assert.match(error.message, /Webhook subscription uri/);
+        assert.equal(error.message.includes(secret), false);
+        return true;
+      },
+    );
+  }
+});
