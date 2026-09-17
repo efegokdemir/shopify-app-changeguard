@@ -1,2 +1,2 @@
 [access_scopes]
-scopes = "read_orders"
+scopes = "read_orders,read_products"
