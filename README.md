@@ -6,10 +6,10 @@ Not affiliated with, endorsed by, or certified by Shopify.
 ## Status
 
 **Experimental prototype with a tested GitHub Action.** It reviews required/optional access scopes,
-application_url, [auth].redirect_urls, webhook API version and app-specific
-webhook subscription changes across two local TOML files. URLs, delivery
-destinations, topics and filter expressions are not printed in findings.
-Application IDs, unrelated sections and deployed state are **not checked**.
+client_id, application_url, [auth].redirect_urls, webhook API version and app-specific
+webhook subscription changes across two local TOML files. Client ID values, URLs, delivery destinations, topics and filter expressions
+are not printed in findings.
+Unrelated sections and deployed state are **not checked**.
 An empty report is not a security or deployment approval. Does not access Shopify
 or deploy anything.
 
@@ -44,8 +44,8 @@ Run inside a Git repository. Both revisions must be commits, and the file must e
 
 ## Next milestones
 
-Explainable client ID diffs; additional webhook regression
-fixtures; expanded PR review coverage; external developer validation.
+Additional webhook regression fixtures; expanded PR review coverage;
+external developer validation.
 
 ## Contributing
 

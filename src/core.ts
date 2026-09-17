@@ -1,3 +1,4 @@
+import { compareClientIds } from './client-id.js';
 import { compareUrls } from './urls.js';
 import { compareWebhooks } from './webhooks.js';
 
@@ -84,6 +85,7 @@ export function compareConfigs(before: Config, after: Config): Finding[] {
   };
   compare(oldScopes.required, newScopes.required, 'required');
   compare(oldScopes.optional, newScopes.optional, 'optional');
+  changes.push(...compareClientIds(before, after));
   changes.push(...compareUrls(before, after));
   changes.push(...compareWebhooks(before, after));
   return changes.sort((a, b) =>
