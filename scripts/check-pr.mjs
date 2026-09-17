@@ -15,9 +15,24 @@ if (!validSha.test(base ?? '') || !validSha.test(head ?? '')) {
   stop('Valid base and head commit SHAs are required.');
 }
 
+const ancestor = spawnSync('git', [
+  'merge-base', base, head,
+], {
+  encoding: 'utf8',
+  maxBuffer: 4096,
+});
+
+if (
+  ancestor.error ||
+  ancestor.status !== 0 ||
+  !validSha.test(ancestor.stdout.trim())
+) {
+  stop('Unable to determine the common Git ancestor.');
+}
+
 const result = spawnSync('git', [
   'diff', '--no-renames', '--name-status', '-z',
-  base, head, '--',
+  ancestor.stdout.trim(), head, '--',
 ], {
   encoding: 'buffer',
   maxBuffer: 4 * 1024 * 1024,
@@ -62,7 +77,7 @@ for (const { status, path } of changed) {
     files.push({
       path,
       findings: compareConfigs(
-        readConfigAtRef(base, path),
+        readConfigAtRef(ancestor.stdout.trim(), path),
         readConfigAtRef(head, path),
       ),
     });
